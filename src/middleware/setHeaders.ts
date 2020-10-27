@@ -1,4 +1,6 @@
-const setHeaders = (req: any, res: any, next: any) => {
+import {Response, Request, NextFunction} from "express";
+
+const setHeaders = (req: Request, res: Response, next: NextFunction) => {
     res.set({
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',

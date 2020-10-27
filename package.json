@@ -6,7 +6,7 @@
   "scripts": {
     "start": "npm run mongo && npm run build:live",
     "build": "tsc && npm run mongo && node ./prod/index.js",
-    "mongo": "service mongod start",
+    "mongo": "brew services start mongodb-community",
     "build:live": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts"
   },
   "repository": {

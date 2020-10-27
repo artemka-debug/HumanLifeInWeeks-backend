@@ -2,10 +2,10 @@ import {Request, Response} from "express-serve-static-core";
 import {html_text} from "./messages";
 import bcrypt from 'bcrypt';
 import nodemailer from 'nodemailer';
-import jwt from 'jsonwebtoken'
+import jwt, {VerifyErrors} from 'jsonwebtoken'
 import {config} from './config';
 
-const dotenv = require('dotenv').config({path: '.' + '/.env'});
+require('dotenv').config({path: '.' + '/.env'});
 
 type InputType = "email" | "password";
 
@@ -15,8 +15,9 @@ function inputValidate(input: string, type: InputType) {
             return /^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,10}$/g.test(input);
         case "password":
             return /\w{6,24}/g.test(input);
+        default:
+            return false;
     }
-    return false;
 }
 
 export async function check_password(user: any, res: Response, password: string) {
@@ -83,32 +84,34 @@ export function validate_password(req: Request, res: Response, next: Function) {
 export function check_token(req: any, res: Response, next: Function) {
     let token = req.headers['x-access-token'] || req.headers['authorization']; // Express headers are auto converted to lowercase
 
-    if (token === undefined) {
+    if (!token) {
         next();
-    } else {
-        if (token.startsWith('Bearer ')) {
-            token = token.slice(7, token.length);
+        return;
+    }
+
+    if (token.startsWith('Bearer ')) {
+        token = token.slice(7, token.length);
+    }
+
+    if (!token) {
+        return res.json({
+            result: false,
+            message: 'Auth token is not supplied'
+        });
+    }
+
+    jwt.verify(token, config.secret, (err: VerifyErrors | null, decoded: any) => {
+        if (!err) {
+            req.decoded = decoded;
+            next();
+            return;
         }
 
-        if (token) {
-            jwt.verify(token, config.secret, (err: Error, decoded: any) => {
-                if (err) {
-                    return res.json({
-                        result: false,
-                        message: 'Token is not valid',
-                    });
-                } else {
-                    req.decoded = decoded;
-                    next();
-                }
-            });
-        } else {
-            return res.json({
-                result: false,
-                message: 'Auth token is not supplied'
-            });
-        }
-    }
+        return res.json({
+            result: false,
+            message: 'Token is not valid',
+        });
+    });
 }
 
 export function create_token(email: string) {
